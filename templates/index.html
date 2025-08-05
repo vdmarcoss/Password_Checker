@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Password Checker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="max-w-3xl mx-auto p-6 bg-gray-50">
+  <h1 class="text-3xl font-semibold mb-6">Password Checker</h1>
+
+  <form method="post" enctype="multipart/form-data" class="grid gap-4">
+    <!-- Password input with live feedback -->
+    <div>
+      <label for="password-input" class="block mb-1 font-medium">Password</label>
+      <div class="relative">
+        <input
+          id="password-input"
+          name="password"
+          type="password"
+          class="w-full border rounded px-3 py-2 pr-16"
+          placeholder="Enter your password"
+        />
+        <button
+          type="button"
+          id="toggle-password"
+          class="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-blue-600"
+        >Show</button>
+      </div>
+      <div class="mt-4">
+        <progress
+          id="strength-bar"
+          max="4"
+          value="0"
+          class="w-full h-2 rounded"
+        ></progress>
+        <p id="strength-text" class="mt-2 text-sm font-medium">Very Weak</p>
+      </div>
+    </div>
+
+    <!-- File upload & options -->
+    <div class="grid grid-cols-2 gap-4">
+      <input type="file" name="file" class="border rounded px-3 py-2" />
+      <input
+        type="number"
+        name="min_length"
+        value="{{ config.min_length }}"
+        min="1"
+        class="border rounded px-3 py-2"
+        placeholder="Min length"
+      />
+    </div>
+    <div class="flex items-center space-x-4">
+      <label class="inline-flex items-center">
+        <input type="checkbox" name="common" class="form-checkbox" {% if config.use_common %}checked{% endif %} />
+        <span class="ml-2 text-sm">Common password check</span>
+      </label>
+      <label class="inline-flex items-center">
+        <input type="checkbox" name="hibp" class="form-checkbox" {% if config.use_hibp %}checked{% endif %} />
+        <span class="ml-2 text-sm">HIBP API</span>
+      </label>
+      <label class="inline-flex items-center">
+        <input type="checkbox" name="zxcvbn" class="form-checkbox" {% if config.use_zxcvbn %}checked{% endif %} />
+        <span class="ml-2 text-sm">zxcvbn</span>
+      </label>
+    </div>
+    <button type="submit" class="bg-blue-600 text-white rounded py-2 hover:bg-blue-700">Verify</button>
+  </form>
+
+  <!-- Server-side results -->
+  {% if results_list %}
+  <div class="mt-8 overflow-x-auto">
+    <h2 class="text-2xl font-medium mb-4">File Results</h2>
+    <table class="min-w-full bg-white rounded shadow">
+      <thead class="bg-gray-200">
+        <tr>
+          <th class="px-4 py-2">Password</th>
+          <th class="px-4 py-2">Length OK</th>
+          <th class="px-4 py-2">Types</th>
+          <th class="px-4 py-2">Common?</th>
+          <th class="px-4 py-2">Breaches</th>
+          <th class="px-4 py-2">Score</th>
+          <th class="px-4 py-2">Warning</th>
+          <th class="px-4 py-2">Suggestions</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for r in results_list %}
+        <tr class="border-t">
+          <td class="px-4 py-2">{{ r.password }}</td>
+          <td class="px-4 py-2">{{ 'Yes' if r.length else 'No' }}</td>
+          <td class="px-4 py-2">
+            {% for key, ok in r.types.items() %}
+              <span class="inline-block mr-2">
+                {% if ok %}✔{% else %}✘{% endif %} {{ key.capitalize() }}
+              </span>
+            {% endfor %}
+          </td>
+          <td class="px-4 py-2">{{ r.common }}</td>
+          <td class="px-4 py-2">{{ r.pwned }}</td>
+          <td class="px-4 py-2">{{ r.score }}/4</td>
+          <td class="px-4 py-2">{{ r.feedback.warning }}</td>
+          <td class="px-4 py-2">{{ r.feedback.suggestions|join(', ') }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% elif result %}
+  <div class="mt-8 bg-white p-4 rounded shadow">
+    <h2 class="text-2xl font-medium mb-2">Result for: "{{ result.password }}"</h2>
+    <ul class="space-y-1 text-sm">
+      <li>Length OK: {{ 'Yes' if result.length else 'No' }}</li>
+      <li>Types:
+        {% for key, ok in result.types.items() %}
+          <span class="inline-block mr-2">
+            {% if ok %}✔{% else %}✘{% endif %} {{ key.capitalize() }}
+          </span>
+        {% endfor %}
+      </li>
+      <li>Common? {{ result.common }}</li>
+      <li>Breaches: {{ result.pwned }}</li>
+      <li>Score: {{ result.score }}/4</li>
+      {% if result.feedback.warning %}<li>Warning: {{ result.feedback.warning }}</li>{% endif %}
+      {% if result.feedback.suggestions %}<li>Suggestions: {{ result.feedback.suggestions|join(', ') }}</li>{% endif %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <script src="/static/js/main.js"></script>
+</body>
+</html>
